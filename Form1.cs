@@ -1,24 +1,19 @@
 ﻿using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Excel = Microsoft.Office.Interop.Excel;
+
 namespace BackgroundWorkerExample
 {
     
     public partial class Form1 : Form
     {
         BackgroundWorker worker;
-  
+        static SaveFileDialog saveFile;
         public Form1()
         {
            InitializeComponent();
@@ -48,9 +43,8 @@ namespace BackgroundWorkerExample
 
         private void button1_Click(object sender, EventArgs e)
         {
-            SaveFileDialog saveFile = new SaveFileDialog();
+            saveFile = new SaveFileDialog();
             saveFile.Filter = "Excel Documents (*.xlsx)|*.xlsx";
-            DateTime date = DateTime.Now;
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
             if (saveFile.ShowDialog() == DialogResult.OK)
             {
@@ -64,27 +58,55 @@ namespace BackgroundWorkerExample
 
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
-            try
-            {      worker.ReportProgress(10);
-                    using (ExcelPackage pck = new ExcelPackage())
+        try
+        {      worker.ReportProgress(10);
+                using (ExcelPackage pck = new ExcelPackage())
+                {
+                        
+                     worker.ReportProgress(50);
+                    foreach (DataTable dataTable in adventureWorks2019DataSet.Tables)
                     {
-                        worker.ReportProgress(50);
-                        foreach (DataTable dataTable in adventureWorks2019DataSet.Tables)
-                        {
-                            ExcelWorksheet ws = pck.Workbook.Worksheets.Add(dataTable.TableName);
-                            ws.Cells["A1"].LoadFromDataTable(dataTable, true);
-                            ws.Cells.AutoFitColumns();
 
+                        ExcelWorksheet ws = pck.Workbook.Worksheets.Add(dataTable.TableName);
+                        ws.Cells["A1"].LoadFromDataTable(dataTable, true);
+                        ws.Cells.AutoFitColumns();
+                        worker.ReportProgress(70);
+                        using (ExcelRange objRange = ws.Cells["A1:G1"])
+                        {
+                            objRange.Style.Font.Bold = true;
+                            objRange.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                            objRange.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                            objRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                            objRange.Style.Fill.BackgroundColor.SetColor(Color.Aquamarine);
                         }
-                        worker.ReportProgress(80);
-                        pck.Save();
+                     }
+                    worker.ReportProgress(80);
+                    byte[] output = pck.GetAsByteArray();
+                    try
+                    {
+                        FileStream fs = new FileStream(saveFile.FileName, FileMode.Create);
+                        worker.ReportProgress(90);
+                        BinaryWriter bw = new BinaryWriter(fs);
+                        bw.Write(output, 0, output.Length); //write the encoded file
+                        worker.ReportProgress(100);
+                        bw.Flush();
+                        bw.Close();
+                        fs.Close();
+                        MessageBox.Show("Save Completed.", "Costumers Results", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                     }
-                    worker.ReportProgress(100);
+                    catch (IOException ex)
+                    {
+                        MessageBox.Show("Unable to save file. " + ex.Message, "Costumers Results", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+
+                  }
+                   
 
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Eccezione: " + ex.Message + " Stacktrace: " + ex.StackTrace);
+                Console.WriteLine("Exception: " + ex.Message + " Stacktrace: " + ex.StackTrace);
             }
         }
 
@@ -99,6 +121,12 @@ namespace BackgroundWorkerExample
             progressBar1.Visible = false;
             label1.Visible = false;
             MessageBox.Show("Finished!");
+            this.Close();
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
         }
     }
 }
