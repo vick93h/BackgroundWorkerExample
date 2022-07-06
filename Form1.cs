@@ -39,15 +39,32 @@ namespace BackgroundWorkerExample
             label1.Visible = false;
             BtnPrevious.Enabled = false;
             buttonLastest.Enabled = false;
+            this.customerTableAdapter.Fill(this.adventureWorks2019DataSet.Customer);
         }
    
 
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // TODO: questa riga di codice carica i dati nella tabella 'adventureWorks2019DataSet.Customer'. È possibile spostarla o rimuoverla se necessario.
-            this.customerTableAdapter.Fill(this.adventureWorks2019DataSet.Customer);
-           
+            var query = from c in adventureWorks2019DataSet.Customer
+                        select new
+                        {
+                            CustomerID = c.CustomerID,
+                            //PersonID = c.PersonID,
+                            //StoreID = c.StoreID,
+                            TerritoryID = c.TerritoryID,
+                            AccountNumber = c.AccountNumber,
+                            RowGuideID = c.rowguid,
+                            ModifiedDate = c.ModifiedDate
+
+                        };
+            
+            customerBindingSource1.DataSource = query.Skip(pageSize * pageNumber).Take(pageSize).ToList();
+            BtnPrevious.Enabled = false;
+            BtnNext.Enabled = true;
+            BtnUltimate.Enabled = true;
+            label_navigator.Text = String.Format("Page {0}/{1}", pageNumber, query.Count() / pageSize);
+
         }
 
 
